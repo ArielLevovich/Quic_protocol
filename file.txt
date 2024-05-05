@@ -1,0 +1,769 @@
+..."], ACK[0]
+Figure 7: A diagram illustrating the QUIC-TLS 1.3 1-RTT handshake [15].
+Initial[0]: CRYPTO[ClientHello{key_share,
+pre_shared_key, early_data,
+quic_transport_parameters}]
+0-RTT[0]: STREAM[0, "..."]
+Initial[0]: CRYPTO[ServerHello{key_share,
+pre_shared_key}] ACK[0]
+Handshake[0]:
+CRYPTO[EncryptedExtensions{quic_transport_para
+meters, early_data}, Finished]
+1-RTT[0]: STREAM[1, "..."] ACK[0]
+Initial[1]: ACK[0]
+Handshake[0]: CRYPTO[Finished], ACK[0]
+1-RTT[1]: STREAM[0, "..."], ACK[0]
+Handshake[1]: ACK[0]
+1-RTT[1]: HANDSHAKE_DONE, STREAM[3,
+"..."], ACK[1]
+Figure 8: A diagram illustrating the QUIC-TLS 1.3 0-RTT handshake [15].
+Protocol, QUIC-TLS [19] §4 Carrying TLS Messages and §8
+QUIC-Specific Adjustments to the TLS Handshake.
+6.2 Authenticated and Encrypted Header
+and Payload
+The QUIC protocol has made an intentional choice to encrypt all practical portions of the packet. Though this is a
+tradeoff – to give a specific example, hiding information
+10
+from the ISP has both benefits and costs – it enables new
+protections for end users. To be more specific, QUIC authenticates all of its headers and payload (except version
+negotiation packets), as well as encrypting most of the data
+exchanged. Figure 4 shows the QUIC packet format, packet
+header fields are unencrypted as they are used for routing or
+performing decryption of the payload. The packet body containing frames is encrypted. Everything in the unencrypted
+header must remain in plaintext for proper operation. The
+header contains flags that are needed to specify which fields
+are included in the header and the length of certain fields.
+The Connection ID is used for routing the packet to its destination server and simultaneously serves as an identifier
+for the connection state. The packet number is needed for
+authentication and decryption, and thus can’t be encrypted.
+This encryption also has the benefit of ensuring QUIC
+can remain relatively easy to update. protocol ossification
+is a well-known problem – middleboxes cannot be easily
+upgraded to meet protocol changes, which limits the flexibility of network protocol design. QUIC packets are mostly
+encrypted, which prevents modification by middleboxes, and
+limits protocol ossification.
+Related RFC: QUIC-TLS [19] §5 Packet Protection.
+7 APPLICATIONS OVER QUIC: HTTP/3
+AS AN EXAMPLE
+As an application protocol, HTTP encodes application
+contents with rich semantics, and the most relevant feature to
+transport delivery is its request-response message exchange
+model: a browser client can issue multiple requests in parallel,
+whose responses often desire different delivery priorities to
+maximize the viewer experience. However, when HTTP runs
+over a TCP connection, which supports reliable delivery of
+a single byte steam only, the order of response contents can
+only be delivered according to the order in which the server
+receives the requests.
+The QUIC design provides multiple stream support to address the above limitation of TCP being unable to prioritize
+between different requests. More specifically, HTTP/3, the
+latest version of HTTP which is designed to run over QUIC,
+utilizes QUIC’s stream semantics to enable each HTTP response being delivered independently and with different
+priorities."
+• As the underlying transport for HTTP/3, QUIC provides reliable in-order delivery at the stream level and
+congestion control at the connection level. Each HTTP
+request-response pair is mapped into an independent
+stream, thus different request-response pairs will not
+block each other in case of loss. QUIC also provides
+security matching TLS + TCP, and lower connection
+setup latency.
+• Stream management is handled at the transport layer,
+QUIC takes care of the reliable delivery and the ordering of the frames then passes the received data to the
+application.
+Related RFC: QUIC-HTTP[2] §4 HTTP Request Lifecycle,
+§6 Stream Mapping and Usage, and §7 HTTP Framing Layer.
+8 CONCLUSION AND FUTURE WORK
+QUIC represents the best transport protocol design the
+community has come out with so far. The basic ideas in
+the QUIC design did not drop out of the sky one day, but
+rather, QUIC represents an accumulation of lessons learned
+from networking experimentation and previous protocol
+designs over the last few decades. For instance, learning
+from T/TCP, QUIC keeps and reuses connection states to
+achieve 0-RTT communication. Adopting the ideas from
+RTP, QUIC runs over UDP to stay outside of the kernel and
+utilizes the ALF/ADU idea documented in [7]. Similar to
+SCTP and HTTP/2, QUIC also uses multiple substreams to
+mitigate head-of-line blocking and typed frames to support
+a variety of control exchanges. Adopting these ideas and
+synthesizing them into a single protocol allow the QUIC
+protocol to minimize latency and minimize other problems
+(such as those identified in §2.2).
+• transport protocols to support reliable delivery to multiple parties.
+• transport protocols to support delay tolerance.
+REFERENCES
+[1] Transmission Control Protocol. RFC 793, September 1981.
+[2] Mike Bishop. Hypertext transfer protocol version 3 (http/3). Rfc,
+February 2021.
+[3] Ethan Blanton, Dr. Vern Paxson, and Mark Allman. TCP Congestion
+Control. RFC 5681, September 2009.
+[4] Robert Braden. T/tcp – tcp extensions for transactions functional
+specification. RFC 1644, July 1994.
+[5] Michelle Cotton, Lars Eggert, Dr. Joseph D. Touch, Magnus Westerlund,
+and Stuart Cheshire. Internet Assigned Numbers Authority (IANA)
+Procedures for the Management of the Service Name and Transport
+Protocol Port Number Registry. RFC 6335, August 2011.
+[6] Adam Langley et. al. The quic transport protocol: Design and internetscale deployment. In Proc. of SIGCOMM, 2017.
+[7] David Clark et. al. Architectural considerations for a new generation
+of protocols. In Proc. of SIGCOMM, 1990.
+[8] Eric Rescorla et. al. Datagram transport layer security version 1.2. RFC
+6347, January 2012.
+[9] Henning Schulzrinne et. al. Rtp: A transport protocol for real-time
+applications. RFC 3550, July 2003.
+[10] Tommy Pault et. al. An unreliable datagram extension to quic. Rfc,
+March 2021.
+[11] Bryan Ford. Structured streams: a new transport abstraction. In
+Proceedings of the 2007 conference on Applications, technologies, architectures, and protocols for computer communications, pages 361–372,
+2007.
+11
+New Path or +------------+
+persistent congestion | Slow |
+(O)---------------------->| Start |
++------------+
+|
+Loss or |
+ECN-CE increase |
+v
++------------+ Loss or +------------+
+| Congestion | ECN-CE increase | Recovery |
+| Avoidance |------------------>| Period |
++------------+ +------------+
+^ |
+| |
++----------------------------+
+Acknowledgment of packet
+sent during recovery
+Figure 9: State Machine of the New Reno Algorithm.
+[14]
+[12] IANA. Service Name and Transport Protocol Port Number
+Registry. https://www.iana.org/assignments/service-names-portnumbers/service-names-port-numbers.xhtml, 2021 (Last Updated
+2021-10-04).
+[13] Jana Iyengar. The maturing of quic, fastly, industry insights.
+https://www.fastly.com/blog/maturing-of-quic, November 2019.
+[14] Jana Iyengar and Ian Swett. QUIC Loss Detection and Congestion
+Control. RFC 9002, May 2021.
+[15] Jana Iyengar and Martin Thomson. QUIC: A UDP-Based Multiplexed
+and Secure Transport. RFC 9000, May 2021.
+[16] Jon Postel. User datagram protocol. RFC 768, August 1980.
+[17] Eric Rescorla. The transport layer security (tls) protocol version 1.3.
+RFC 8446, August 2018.
+[18] Randall Stewart. Stream control transmission protocol. RFC 4960,
+September 2007.
+[19] Martin Thomson and Sean Turner. Using TLS to Secure QUIC. RFC
+9001, May 2021.
+A THE NEWRENO ALGORITHM
+line holder
+The state machine of the NewReno algorithm documented
+in the QUIC standard [14] is shown in Figure 9. In addition to the congestion window, the NewReno algorithm will
+also maintain another variable named Slow Start Threshold,
+which will be initialized to infinity. The NewReno algorithm
+has the following three states:
+Slow Start: A QUIC sender will start at the Slow Start
+state and will reenter it when persistent congestion is declared. During this state, the congestion window will grow
+exponentially and is increased by the number of newly acknowledged bytes. The sender will enter the Recovery state
+when a packet is declared lost or when the ECN-CE counter
+has been increased.
+Recovery: Each time the sender enters the Recovery state,
+the congestion window will be reduced by half and the Slow
+Start Threshold will be set to the new congestion window
+size. The sender will enter the Congestion Avoidance state
+when a packet sent during the Recovery state is acknowledged by its peer.
+Congestion Avoidance: During this state, the Additive
+Increase Multiplicative Decrease (AIMD) approach will be
+used, and for each congestion window acknowledgment, the
+increase of the window size will be limited to the maximum
+size of one datagram. The sender will enter the Recovery
+state when a packet is declared lost or when the ECN-CE
+counter has been increased.
+Handling Persistent Congestion: When persistent congestion is declared, the congestion window will be reduced
+to the minimum congestion window size and the sender will
+reenter the Slow Start state.
+Related RFC: QUIC-RECOVERY[14] §7 Congestion Control.
+B VERSION NEGOTIATION
+Unlike traditional transport protocols, QUIC supports the
+co-existence of different protocol versions. In order to carry
+out this feature, the client and server can negotiate a mutually
+supported protocol version before establishing a connection.
+This is useful for the protocol to continuously evolve while
+allowing endpoints to negotiate which version to use. For
+clients that support multiple QUIC versions, QUIC should
+choose the largest of the minimum packet sizes across all
+the supported versions as the size of its first packet. If the
+server does not accept the version selected by the client, it
+will send an additional Version Negotiation packet to the
+client listing its accepted versions. This will introduce an
+additional 1-RTT latency to the QUIC handshake process.
+Related RFC: QUIC-TRANSPORT[15] §6 Version Negotiation.
+12versions, QUIC should
+choose the largest of the minimum packet sizes across all
+the supported versions as the size of its first packet. If the
+server does not accept the version selected by the client, it
+will send an additional Version Negotiation packet to the
+client listing its accepted versions. This will introduce an
+additional 1-RTT latency to the QUIC handshake process.
+Related RFC: QUIC-TRANSPORT[15] §6 Version Negotiation.
+12format, packet
+header fields are unencrypted as they are used for routing or
+performing decryption of the payload. The packet body containing frames is encrypted. Everything in the unencrypted
+header must remain in plaintext for proper operation. The
+header contains flags that are needed to specify which fields
+are included in the header and the length of certain fields.
+The Connection ID is used for routing the packet to its destination server and simultaneously serves as an identifier
+for the connection state. The packet number is needed for
+authentication and decryption, and thus can’t be encrypted.
+This encryption also has the benefit of ensuring QUIC
+can remain relatively easy to update. protocol ossification
+is a well-known problem – middleboxes cannot be easily
+upgraded to meet protocol changes, which limits the flexibility of network protocol design. QUIC packets are mostly
+encrypted, which prevents modification by middleboxes, and
+limits protocol ossification.
+Related RFC: QUIC-TLS [19] §5 Packet Protection.
+7 APPLICATIONS OVER QUIC: HTTP/3
+AS AN EXAMPLE
+As an application protocol, HTTP encodes application
+contents with rich semantics, and the most relevant feature to
+transport delivery is its request-response message exchange
+model: a browser client can issue multiple requests in parallel,
+whose responses often desire different delivery priorities to
+maximize the viewer experience. However, when HTTP runs
+over a TCP connection, which supports reliable delivery of
+a single byte steam only, the order of response contents can
+only be delivered according to the order in which the server
+receives the requests.
+The QUIC design provides multiple stream support to address the above limitation of TCP being unable to prioritize
+between different requests. More specifically, HTTP/3, the
+latest version of HTTP which is designed to run over QUIC,
+utilizes QUIC’s stream semantics to enable each HTTP response being delivered independently and with different
+priorities."
+• As the underlying transport for HTTP/3, QUIC provides reliable in-order delivery at the stream level and
+congestion control at the connection level. Each HTTP
+request-response pair is mapped into an independent
+stream, thus different request-response pairs will not
+block each other in case of loss. QUIC also provides
+security matching TLS + TCP, and lower connection
+setup latency.
+• Stream management is handled at the transport layer,
+QUIC takes care of the reliable delivery and the ordering of the frames then passes the received data to the
+application.
+Related RFC: QUIC-HTTP[2] §4 HTTP Request Lifecycle,
+§6 Stream Mapping and Usage, and §7 HTTP Framing Layer.
+8 CONCLUSION AND FUTURE WORK
+QUIC represents the best transport protocol design the
+community has come out with so far. The basic ideas in
+the QUIC design did not drop out of the sky one day, but
+rather, QUIC represents an accumulation of lessons learned
+from networking experimentation and previous protocol
+designs over the last few decades. For instance, learning
+from T/TCP, QUIC keeps and reuses connection states to..."], ACK[0]
+Figure 7: A diagram illustrating the QUIC-TLS 1.3 1-RTT handshake [15].
+Initial[0]: CRYPTO[ClientHello{key_share,
+pre_shared_key, early_data,
+quic_transport_parameters}]
+0-RTT[0]: STREAM[0, "..."]
+Initial[0]: CRYPTO[ServerHello{key_share,
+pre_shared_key}] ACK[0]
+Handshake[0]:
+CRYPTO[EncryptedExtensions{quic_transport_para
+meters, early_data}, Finished]
+1-RTT[0]: STREAM[1, "..."] ACK[0]
+Initial[1]: ACK[0]
+Handshake[0]: CRYPTO[Finished], ACK[0]
+1-RTT[1]: STREAM[0, "..."], ACK[0]
+Handshake[1]: ACK[0]
+1-RTT[1]: HANDSHAKE_DONE, STREAM[3,
+"..."], ACK[1]
+Figure 8: A diagram illustrating the QUIC-TLS 1.3 0-RTT handshake [15].
+Protocol, QUIC-TLS [19] §4 Carrying TLS Messages and §8
+QUIC-Specific Adjustments to the TLS Handshake.
+6.2 Authenticated and Encrypted Header
+and Payload
+The QUIC protocol has made an intentional choice to encrypt all practical portions of the packet. Though this is a
+tradeoff – to give a specific example, hiding information
+10
+from the ISP has both benefits and costs – it enables new
+protections for end users. To be more specific, QUIC authenticates all of its headers and payload (except version
+negotiation packets), as well as encrypting most of the data
+exchanged. Figure 4 shows the QUIC packet format, packet
+header fields are unencrypted as they are used for routing or
+performing decryption of the payload. The packet body containing frames is encrypted. Everything in the unencrypted
+header must remain in plaintext for proper operation. The
+header contains flags that are needed to specify which fields
+are included in the header and the length of certain fields.
+The Connection ID is used for routing the packet to its destination server and simultaneously serves as an identifier
+for the connection state. The packet number is needed for
+authentication and decryption, and thus can’t be encrypted.
+This encryption also has the benefit of ensuring QUIC
+can remain relatively easy to update. protocol ossification
+is a well-known problem – middleboxes cannot be easily
+upgraded to meet protocol changes, which limits the flexibility of network protocol design. QUIC packets are mostly
+encrypted, which prevents modification by middleboxes, and
+limits protocol ossification.
+Related RFC: QUIC-TLS [19] §5 Packet Protection.
+7 APPLICATIONS OVER QUIC: HTTP/3
+AS AN EXAMPLE
+As an application protocol, HTTP encodes application
+contents with rich semantics, and the most relevant feature to
+transport delivery is its request-response message exchange
+model: a browser client can issue multiple requests in parallel,
+whose responses often desire different delivery priorities to
+maximize the viewer experience. However, when HTTP runs
+over a TCP connection, which supports reliable delivery of
+a single byte steam only, the order of response contents can
+only be delivered according to the order in which the server
+receives the requests.
+The QUIC design provides multiple stream support to address the above limitation of TCP being unable to prioritize
+between different requests. More specifically, HTTP/3, the
+latest version of HTTP which is designed to run over QUIC,
+utilizes QUIC’s stream semantics to enable each HTTP response being delivered independently and with different
+priorities."
+• As the underlying transport for HTTP/3, QUIC provides reliable in-order delivery at the stream level and
+congestion control at the connection level. Each HTTP
+request-response pair is mapped into an independent
+stream, thus different request-response pairs will not
+block each other in case of loss. QUIC also provides
+security matching TLS + TCP, and lower connection
+setup latency.
+• Stream management is handled at the transport layer,
+QUIC takes care of the reliable delivery and the ordering of the frames then passes the received data to the
+application.
+Related RFC: QUIC-HTTP[2] §4 HTTP Request Lifecycle,
+§6 Stream Mapping and Usage, and §7 HTTP Framing Layer.
+8 CONCLUSION AND FUTURE WORK
+QUIC represents the best transport protocol design the
+community has come out with so far. The basic ideas in
+the QUIC design did not drop out of the sky one day, but
+rather, QUIC represents an accumulation of lessons learned
+from networking experimentation and previous protocol
+designs over the last few decades. For instance, learning
+from T/TCP, QUIC keeps and reuses connection states to
+achieve 0-RTT communication. Adopting the ideas from
+RTP, QUIC runs over UDP to stay outside of the kernel and
+utilizes the ALF/ADU idea documented in [7]. Similar to
+SCTP and HTTP/2, QUIC also uses multiple substreams to
+mitigate head-of-line blocking and typed frames to support
+a variety of control exchanges. Adopting these ideas and
+synthesizing them into a single protocol allow the QUIC
+protocol to minimize latency and minimize other problems
+(such as those identified in §2.2).
+• transport protocols to support reliable delivery to multiple parties.
+• transport protocols to support delay tolerance.
+REFERENCES
+[1] Transmission Control Protocol. RFC 793, September 1981.
+[2] Mike Bishop. Hypertext transfer protocol version 3 (http/3). Rfc,
+February 2021.
+[3] Ethan Blanton, Dr. Vern Paxson, and Mark Allman. TCP Congestion
+Control. RFC 5681, September 2009.
+[4] Robert Braden. T/tcp – tcp extensions for transactions functional
+specification. RFC 1644, July 1994.
+[5] Michelle Cotton, Lars Eggert, Dr. Joseph D. Touch, Magnus Westerlund,
+and Stuart Cheshire. Internet Assigned Numbers Authority (IANA)
+Procedures for the Management of the Service Name and Transport
+Protocol Port Number Registry. RFC 6335, August 2011.
+[6] Adam Langley et. al. The quic transport protocol: Design and internetscale deployment. In Proc. of SIGCOMM, 2017.
+[7] David Clark et. al. Architectural considerations for a new generation
+of protocols. In Proc. of SIGCOMM, 1990.
+[8] Eric Rescorla et. al. Datagram transport layer security version 1.2. RFC
+6347, January 2012.
+[9] Henning Schulzrinne et. al. Rtp: A transport protocol for real-time
+applications. RFC 3550, July 2003.
+[10] Tommy Pault et. al. An unreliable datagram extension to quic. Rfc,
+March 2021.
+[11] Bryan Ford. Structured streams: a new transport abstraction. In
+Proceedings of the 2007 conference on Applications, technologies, architectures, and protocols for computer communications, pages 361–372,
+2007.
+11
+New Path or +------------+
+persistent congestion | Slow |
+(O)---------------------->| Start |
++------------+
+|
+Loss or |
+ECN-CE increase |
+v
++------------+ Loss or +------------+
+| Congestion | ECN-CE increase | Recovery |
+| Avoidance |------------------>| Period |
++------------+ +------------+
+^ |
+| |
++----------------------------+
+Acknowledgment of packet
+sent during recovery
+Figure 9: State Machine of the New Reno Algorithm.
+[14]
+[12] IANA. Service Name and Transport Protocol Port Number
+Registry. https://www.iana.org/assignments/service-names-portnumbers/service-names-port-numbers.xhtml, 2021 (Last Updated
+2021-10-04).
+[13] Jana Iyengar. The maturing of quic, fastly, industry insights.
+https://www.fastly.com/blog/maturing-of-quic, November 2019.
+[14] Jana Iyengar and Ian Swett. QUIC Loss Detection and Congestion
+Control. RFC 9002, May 2021.
+[15] Jana Iyengar and Martin Thomson. QUIC: A UDP-Based Multiplexed
+and Secure Transport. RFC 9000, May 2021.
+[16] Jon Postel. User datagram protocol. RFC 768, August 1980.
+[17] Eric Rescorla. The transport layer security (tls) protocol version 1.3.
+RFC 8446, August 2018.
+[18] Randall Stewart. Stream control transmission protocol. RFC 4960,
+September 2007.
+[19] Martin Thomson and Sean Turner. Using TLS to Secure QUIC. RFC
+9001, May 2021.
+A THE NEWRENO ALGORITHM
+line holder
+The state machine of the NewReno algorithm documented
+in the QUIC standard [14] is shown in Figure 9. In addition to the congestion window, the NewReno algorithm will
+also maintain another variable named Slow Start Threshold,
+which will be initialized to infinity. The NewReno algorithm
+has the following three states:
+Slow Start: A QUIC sender will start at the Slow Start
+state and will reenter it when persistent congestion is declared. During this state, the congestion window will grow
+exponentially and is increased by the number of newly acknowledged bytes. The sender will enter the Recovery state
+when a packet is declared lost or when the ECN-CE counter
+has been increased.
+Recovery: Each time the sender enters the Recovery state,
+the congestion window will be reduced by half and the Slow
+Start Threshold will be set to the new congestion window
+size. The sender will enter the Congestion Avoidance state
+when a packet sent during the Recovery state is acknowledged by its peer.
+Congestion Avoidance: During this state, the Additive
+Increase Multiplicative Decrease (AIMD) approach will be
+used, and for each congestion window acknowledgment, the
+increase of the window size will be limited to the maximum
+size of one datagram. The sender will enter the Recovery
+state when a packet is declared lost or when the ECN-CE
+counter has been increased.
+Handling Persistent Congestion: When persistent congestion is declared, the congestion window will be reduced
+to the minimum congestion window size and the sender will
+reenter the Slow Start state.
+Related RFC: QUIC-RECOVERY[14] §7 Congestion Control.
+B VERSION NEGOTIATION
+Unlike traditional transport protocols, QUIC supports the
+co-existence of different protocol versions. In order to carry
+out this feature, the client and server can negotiate a mutually
+supported protocol version before establishing a connection.
+This is useful for the protocol to continuously evolve while
+allowing endpoints to negotiate which version to use. For
+clients that support multiple QUIC versions, QUIC should
+choose the largest of the minimum packet sizes across all
+the supported versions as the size of its first packet. If the
+server does not accept the version selected by the client, it
+will send an additional Version Negotiation packet to the
+client listing its accepted versions. This will introduce an
+additional 1-RTT latency to the QUIC handshake process.
+Related RFC: QUIC-TRANSPORT[15] §6 Version Negotiation.
+12versions, QUIC should
+choose the largest of the minimum packet sizes across all
+the supported versions as the size of its first packet. If the
+server does not accept the version selected by the client, it
+will send an additional Version Negotiation packet to the
+client listing its accepted versions. This will introduce an
+additional 1-RTT latency to the QUIC handshake process.
+Related RFC: QUIC-TRANSPORT[15] §6 Version Negotiation.
+12format, packet
+header fields are unencrypted as they are used for routing or
+performing decryption of the payload. The packet body containing frames is encrypted. Everything in the unencrypted
+header must remain in plaintext for proper operation. The
+header contains flags that are needed to specify which fields
+are included in the header and the length of certain fields.
+The Connection ID is used for routing the packet to its destination server and simultaneously serves as an identifier
+for the connection state. The packet number is needed for
+authentication and decryption, and thus can’t be encrypted.
+This encryption also has the benefit of ensuring QUIC
+can remain relatively easy to update. protocol ossification
+is a well-known problem – middleboxes cannot be easily
+upgraded to meet protocol changes, which limits the flexibility of network protocol design. QUIC packets are mostly
+encrypted, which prevents modification by middleboxes, and
+limits protocol ossification.
+Related RFC: QUIC-TLS [19] §5 Packet Protection.
+7 APPLICATIONS OVER QUIC: HTTP/3
+AS AN EXAMPLE
+As an application protocol, HTTP encodes application
+contents with rich semantics, and the most relevant feature to
+transport delivery is its request-response message exchange
+model: a browser client can issue multiple requests in parallel,
+whose responses often desire different delivery priorities to
+maximize the viewer experience. However, when HTTP runs
+over a TCP connection, which supports reliable delivery of
+a single byte steam only, the order of response contents can
+only be delivered according to the order in which the server
+receives the requests.
+The QUIC design provides multiple stream support to address the above limitation of TCP being unable to prioritize
+between different requests. More specifically, HTTP/3, the
+latest version of HTTP which is designed to run over QUIC,
+utilizes QUIC’s stream semantics to enable each HTTP response being delivered independently and with different
+priorities."
+• As the underlying transport for HTTP/3, QUIC provides reliable in-order delivery at the stream level and
+congestion control at the connection level. Each HTTP
+request-response pair is mapped into an independent
+stream, thus different request-response pairs will not
+block each other in case of loss. QUIC also provides
+security matching TLS + TCP, and lower connection
+setup latency.
+• Stream management is handled at the transport layer,
+QUIC takes care of the reliable delivery and the ordering of the frames then passes the received data to the
+application.
+Related RFC: QUIC-HTTP[2] §4 HTTP Request Lifecycle,
+§6 Stream Mapping and Usage, and §7 HTTP Framing Layer.
+8 CONCLUSION AND FUTURE WORK
+QUIC represents the best transport protocol design the
+community has come out with so far. The basic ideas in
+the QUIC design did not drop out of the sky one day, but
+rather, QUIC represents an accumulation of lessons learned
+from networking experimentation and previous protocol
+designs over the last few decades. For instance, learning
+from T/TCP, QUIC keeps and reuses connection states to..."], ACK[0]
+Figure 7: A diagram illustrating the QUIC-TLS 1.3 1-RTT handshake [15].
+Initial[0]: CRYPTO[ClientHello{key_share,
+pre_shared_key, early_data,
+quic_transport_parameters}]
+0-RTT[0]: STREAM[0, "..."]
+Initial[0]: CRYPTO[ServerHello{key_share,
+pre_shared_key}] ACK[0]
+Handshake[0]:
+CRYPTO[EncryptedExtensions{quic_transport_para
+meters, early_data}, Finished]
+1-RTT[0]: STREAM[1, "..."] ACK[0]
+Initial[1]: ACK[0]
+Handshake[0]: CRYPTO[Finished], ACK[0]
+1-RTT[1]: STREAM[0, "..."], ACK[0]
+Handshake[1]: ACK[0]
+1-RTT[1]: HANDSHAKE_DONE, STREAM[3,
+"..."], ACK[1]
+Figure 8: A diagram illustrating the QUIC-TLS 1.3 0-RTT handshake [15].
+Protocol, QUIC-TLS [19] §4 Carrying TLS Messages and §8
+QUIC-Specific Adjustments to the TLS Handshake.
+6.2 Authenticated and Encrypted Header
+and Payload
+The QUIC protocol has made an intentional choice to encrypt all practical portions of the packet. Though this is a
+tradeoff – to give a specific example, hiding information
+10
+from the ISP has both benefits and costs – it enables new
+protections for end users. To be more specific, QUIC authenticates all of its headers and payload (except version
+negotiation packets), as well as encrypting most of the data
+exchanged. Figure 4 shows the QUIC packet format, packet
+header fields are unencrypted as they are used for routing or
+performing decryption of the payload. The packet body containing frames is encrypted. Everything in the unencrypted
+header must remain in plaintext for proper operation. The
+header contains flags that are needed to specify which fields
+are included in the header and the length of certain fields.
+The Connection ID is used for routing the packet to its destination server and simultaneously serves as an identifier
+for the connection state. The packet number is needed for
+authentication and decryption, and thus can’t be encrypted.
+This encryption also has the benefit of ensuring QUIC
+can remain relatively easy to update. protocol ossification
+is a well-known problem – middleboxes cannot be easily
+upgraded to meet protocol changes, which limits the flexibility of network protocol design. QUIC packets are mostly
+encrypted, which prevents modification by middleboxes, and
+limits protocol ossification.
+Related RFC: QUIC-TLS [19] §5 Packet Protection.
+7 APPLICATIONS OVER QUIC: HTTP/3
+AS AN EXAMPLE
+As an application protocol, HTTP encodes application
+contents with rich semantics, and the most relevant feature to
+transport delivery is its request-response message exchange
+model: a browser client can issue multiple requests in parallel,
+whose responses often desire different delivery priorities to
+maximize the viewer experience. However, when HTTP runs
+over a TCP connection, which supports reliable delivery of
+a single byte steam only, the order of response contents can
+only be delivered according to the order in which the server
+receives the requests.
+The QUIC design provides multiple stream support to address the above limitation of TCP being unable to prioritize
+between different requests. More specifically, HTTP/3, the
+latest version of HTTP which is designed to run over QUIC,
+utilizes QUIC’s stream semantics to enable each HTTP response being delivered independently and with different
+priorities."
+• As the underlying transport for HTTP/3, QUIC provides reliable in-order delivery at the stream level and
+congestion control at the connection level. Each HTTP
+request-response pair is mapped into an independent
+stream, thus different request-response pairs will not
+block each other in case of loss. QUIC also provides
+security matching TLS + TCP, and lower connection
+setup latency.
+• Stream management is handled at the transport layer,
+QUIC takes care of the reliable delivery and the ordering of the frames then passes the received data to the
+application.
+Related RFC: QUIC-HTTP[2] §4 HTTP Request Lifecycle,
+§6 Stream Mapping and Usage, and §7 HTTP Framing Layer.
+8 CONCLUSION AND FUTURE WORK
+QUIC represents the best transport protocol design the
+community has come out with so far. The basic ideas in
+the QUIC design did not drop out of the sky one day, but
+rather, QUIC represents an accumulation of lessons learned
+from networking experimentation and previous protocol
+designs over the last few decades. For instance, learning
+from T/TCP, QUIC keeps and reuses connection states to
+achieve 0-RTT communication. Adopting the ideas from
+RTP, QUIC runs over UDP to stay outside of the kernel and
+utilizes the ALF/ADU idea documented in [7]. Similar to
+SCTP and HTTP/2, QUIC also uses multiple substreams to
+mitigate head-of-line blocking and typed frames to support
+a variety of control exchanges. Adopting these ideas and
+synthesizing them into a single protocol allow the QUIC
+protocol to minimize latency and minimize other problems
+(such as those identified in §2.2).
+• transport protocols to support reliable delivery to multiple parties.
+• transport protocols to support delay tolerance.
+REFERENCES
+[1] Transmission Control Protocol. RFC 793, September 1981.
+[2] Mike Bishop. Hypertext transfer protocol version 3 (http/3). Rfc,
+February 2021.
+[3] Ethan Blanton, Dr. Vern Paxson, and Mark Allman. TCP Congestion
+Control. RFC 5681, September 2009.
+[4] Robert Braden. T/tcp – tcp extensions for transactions functional
+specification. RFC 1644, July 1994.
+[5] Michelle Cotton, Lars Eggert, Dr. Joseph D. Touch, Magnus Westerlund,
+and Stuart Cheshire. Internet Assigned Numbers Authority (IANA)
+Procedures for the Management of the Service Name and Transport
+Protocol Port Number Registry. RFC 6335, August 2011.
+[6] Adam Langley et. al. The quic transport protocol: Design and internetscale deployment. In Proc. of SIGCOMM, 2017.
+[7] David Clark et. al. Architectural considerations for a new generation
+of protocols. In Proc. of SIGCOMM, 1990.
+[8] Eric Rescorla et. al. Datagram transport layer security version 1.2. RFC
+6347, January 2012.
+[9] Henning Schulzrinne et. al. Rtp: A transport protocol for real-time
+applications. RFC 3550, July 2003.
+[10] Tommy Pault et. al. An unreliable datagram extension to quic. Rfc,
+March 2021.
+[11] Bryan Ford. Structured streams: a new transport abstraction. In
+Proceedings of the 2007 conference on Applications, technologies, architectures, and protocols for computer communications, pages 361–372,
+2007.
+11
+New Path or +------------+
+persistent congestion | Slow |
+(O)---------------------->| Start |
++------------+
+|
+Loss or |
+ECN-CE increase |
+v
++------------+ Loss or +------------+
+| Congestion | ECN-CE increase | Recovery |
+| Avoidance |------------------>| Period |
++------------+ +------------+
+^ |
+| |
++----------------------------+
+Acknowledgment of packet
+sent during recovery
+Figure 9: State Machine of the New Reno Algorithm.
+[14]
+[12] IANA. Service Name and Transport Protocol Port Number
+Registry. https://www.iana.org/assignments/service-names-portnumbers/service-names-port-numbers.xhtml, 2021 (Last Updated
+2021-10-04).
+[13] Jana Iyengar. The maturing of quic, fastly, industry insights.
+https://www.fastly.com/blog/maturing-of-quic, November 2019.
+[14] Jana Iyengar and Ian Swett. QUIC Loss Detection and Congestion
+Control. RFC 9002, May 2021.
+[15] Jana Iyengar and Martin Thomson. QUIC: A UDP-Based Multiplexed
+and Secure Transport. RFC 9000, May 2021.
+[16] Jon Postel. User datagram protocol. RFC 768, August 1980.
+[17] Eric Rescorla. The transport layer security (tls) protocol version 1.3.
+RFC 8446, August 2018.
+[18] Randall Stewart. Stream control transmission protocol. RFC 4960,
+September 2007.
+[19] Martin Thomson and Sean Turner. Using TLS to Secure QUIC. RFC
+9001, May 2021.
+A THE NEWRENO ALGORITHM
+line holder
+The state machine of the NewReno algorithm documented
+in the QUIC standard [14] is shown in Figure 9. In addition to the congestion window, the NewReno algorithm will
+also maintain another variable named Slow Start Threshold,
+which will be initialized to infinity. The NewReno algorithm
+has the following three states:
+Slow Start: A QUIC sender will start at the Slow Start
+state and will reenter it when persistent congestion is declared. During this state, the congestion window will grow
+exponentially and is increased by the number of newly acknowledged bytes. The sender will enter the Recovery state
+when a packet is declared lost or when the ECN-CE counter
+has been increased.
+Recovery: Each time the sender enters the Recovery state,
+the congestion window will be reduced by half and the Slow
+Start Threshold will be set to the new congestion window
+size. The sender will enter the Congestion Avoidance state
+when a packet sent during the Recovery state is acknowledged by its peer.
+Congestion Avoidance: During this state, the Additive
+Increase Multiplicative Decrease (AIMD) approach will be
+used, and for each congestion window acknowledgment, the
+increase of the window size will be limited to the maximum
+size of one datagram. The sender will enter the Recovery
+state when a packet is declared lost or when the ECN-CE
+counter has been increased.
+Handling Persistent Congestion: When persistent congestion is declared, the congestion window will be reduced
+to the minimum congestion window size and the sender will
+reenter the Slow Start state.
+Related RFC: QUIC-RECOVERY[14] §7 Congestion Control.
+B VERSION NEGOTIATION
+Unlike traditional transport protocols, QUIC supports the
+co-existence of different protocol versions. In order to carry
+out this feature, the client and server can negotiate a mutually
+supported protocol version before establishing a connection.
+This is useful for the protocol to continuously evolve while
+allowing endpoints to negotiate which version to use. For
+clients that support multiple QUIC versions, QUIC should
+choose the largest of the minimum packet sizes across all
+the supported versions as the size of its first packet. If the
+server does not accept the version selected by the client, it
+will send an additional Version Negotiation packet to the
+client listing its accepted versions. This will introduce an
+additional 1-RTT latency to the QUIC handshake process.
+Related RFC: QUIC-TRANSPORT[15] §6 Version Negotiation.
+12versions, QUIC should
+choose the largest of the minimum packet sizes across all
+the supported versions as the size of its first packet. If the
+server does not accept the version selected by the client, it
+will send an additional Version Negotiation packet to the
+client listing its accepted versions. This will introduce an
+additional 1-RTT latency to the QUIC handshake process.
+Related RFC: QUIC-TRANSPORT[15] §6 Version Negotiation.
+12format, packet
+header fields are unencrypted as they are used for routing or
+performing decryption of the payload. The packet body containing frames is encrypted. Everything in the unencrypted
+header must remain in plaintext for proper operation. The
+header contains flags that are needed to specify which fields
+are included in the header and the length of certain fields.
+The Connection ID is used for routing the packet to its destination server and simultaneously serves as an identifier
+for the connection state. The packet number is needed for
+authentication and decryption, and thus can’t be encrypted.
+This encryption also has the benefit of ensuring QUIC
+can remain relatively easy to update. protocol ossification
+is a well-known problem – middleboxes cannot be easily
+upgraded to meet protocol changes, which limits the flexibility of network protocol design. QUIC packets are mostly
+encrypted, which prevents modification by middleboxes, and
+limits protocol ossification.
+Related RFC: QUIC-TLS [19] §5 Packet Protection.
+7 APPLICATIONS OVER QUIC: HTTP/3
+AS AN EXAMPLE
+As an application protocol, HTTP encodes application
+contents with rich semantics, and the most relevant feature to
+transport delivery is its request-response message exchange
+model: a browser client can issue multiple requests in parallel,
+whose responses often desire different delivery priorities to
+maximize the viewer experience. However, when HTTP runs
+over a TCP connection, which supports reliable delivery of
+a single byte steam only, the order of response contents can
+only be delivered according to the order in which the server
+receives the requests.
+The QUIC design provides multiple stream support to address the above limitation of TCP being unable to prioritize
+between different requests. More specifically, HTTP/3, the
+latest version of HTTP which is designed to run over QUIC,
+utilizes QUIC’s stream semantics to enable each HTTP response being delivered independently and with different
+priorities."
+• As the underlying transport for HTTP/3, QUIC provides reliable in-order delivery at the stream level and
+congestion control at the connection level. Each HTTP
+request-response pair is mapped into an independent
+stream, thus different request-response pairs will not
+block each other in case of loss. QUIC also provides
+security matching TLS + TCP, and lower connection
+setup latency.
+• Stream management is handled at the transport layer,
+QUIC takes care of the reliable delivery and the ordering of the frames then passes the received data to the
+application.
+Related RFC: QUIC-HTTP[2] §4 HTTP Request Lifecycle,
+§6 Stream Mapping and Usage, and §7 HTTP Framing Layer.
+8 CONCLUSION AND FUTURE WORK
+QUIC represents the best transport protocol design the
+community has come out with so far. The basic ideas in
+the QUIC design did not drop out of the sky one day, but
+rather, QUIC represents an accumulation of lessons learned
+from networking experimentation and previous protocol
+designs over the last few decades. For instance, learning
+from T/TCP, QUIC keeps and reuses connection states to
