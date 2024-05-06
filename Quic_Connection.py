@@ -5,30 +5,29 @@ from typing import Dict
 
 from Quic import Quic
 
-from aioquic.quic.configuration import QuicConfiguration
-from aioquic.quic.connection import QuicConnection
-from aioquic.quic.events import StreamDataReceived, ConnectionTerminated, DatagramReceived
-from aioquic.asyncio import server
-import asyncio
-import ssl
-
+# from aioquic.quic.configuration import QuicConfiguration
+# from aioquic.quic.connection import QuicConnection
+# from aioquic.quic.events import StreamDataReceived, ConnectionTerminated, DatagramReceived
+# from aioquic.asyncio import server
+# import asyncio
+# import ssl
 
 class Quic_Connection:
-    def __init__(self, ip, port, reordering_threshold=3, time_threshold=0.5):
+    def __init__(self, ip, port, reordering_threshold=3, time_threshold=0.5, socket):
         self.ip = ip
         self.port = port
         self.packet_number = 0
-        self.outgoing_packets = {}
-        self.sent_packets: Dict[int, Quic] = {}
-        self.acknowledged_packets = {}
+        self.outgoing_packets: Dict[int, Quic] = {}
+        #self.acknowledged_packets = {}
         self.largest_acknowledged = -1
         self.reordering_threshold = reordering_threshold
         self.time_threshold = time_threshold
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock = socket
+        # self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((ip, port))
         # threading.Thread(target=self._packet_loss_checker, daemon=True).start()
 
-    def recv(self, seq):
+    def recv(self, ):
         self.listen_for_packets()
 
     def send_packet(self, payload):
@@ -53,6 +52,7 @@ class Quic_Connection:
             self._check_for_lost_packets()
 
     def _check_for_lost_packets(self):
+        #להוסיף מעבר רק מהפקטה האחרונה שנבדקה
         current_time = time.time()
         lost_packets = []
         for packet in self.outgoing_packets.values():

@@ -1,5 +1,6 @@
 import threading
-from quic import QuicConnection, QuicAddressFamily
+# from quic import QuicConnection, QuicAddressFamily
+import Quic_Connection
 
 
 def handle_client_data(quic_server):
@@ -23,12 +24,12 @@ def handle_client_data(quic_server):
 
 
 def server_main():
-    host = 'localhost'
+    host: str = "localhost"
     port = 4433
     print(f"Server is running on {host}:{port}")
 
     # Create a QUIC server
-    quic_server = QuicConnection(host, port)
+    quic_server = Quic_Connection.Quic_Connection(host, port)
 
     try:
         while True:

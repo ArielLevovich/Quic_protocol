@@ -9,7 +9,7 @@ import Quic
 from Quic_Connection import Quic_Connection
 
 
-def send(client, server_address, file_path):
+def send(server_address, file_path):
     try:
         # Create a QUIC connection to the server
         quic_client = Quic_Connection(server_address[0], server_address[1])

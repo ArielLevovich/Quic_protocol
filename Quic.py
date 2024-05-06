@@ -1,6 +1,6 @@
 import socket
 import time
-import Quic_Connection
+# import Quic_Connection
 
 
 class Quic:
