@@ -2,11 +2,12 @@ import socket
 import time
 import Quic_Connection
 
-class Quic:
-    static_id = 0
 
-    def __init__(self, sequence_number: int, is_server: bool):
-        self.sequence_number = sequence_number
+class Quic:
+    def __init__(self, seq, payload):
+        #self.udp_socket = None  # when being asked to create a socket, it will be created
+        self.sequence = seq
+        self.payload = payload
         self.sent_time = time.time()
         self.acknowledged = False
         self.ip = "local host"

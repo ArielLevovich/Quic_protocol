@@ -1,51 +1,45 @@
-import socket
 import threading
-import Quic
+from quic import QuicConnection, QuicAddressFamily
 
 
-def handle_client_data(server_socket, client_addr):
-    print(f"Handling data from client {client_addr}")
+def handle_client_data(quic_server):
     try:
+        count = 0
         while True:
-            # Receive data from the client
-            data, addr = server_socket.recvfrom(1024)
+            data = quic_server.recv()
+            count += 1
             if data:
-                print(f"Received {len(data)} bytes from {addr}")
-                if len(data) < 1024:
-                    print("receive all file, end")
+                print(f"Received {len(data)} bytes")
                 # Process or store data, for instance, append to a file or handle accordingly
-                # Send a simple acknowledgment for the received chunk
-                server_socket.sendto(b"ACK", addr)
+                if len(data) < 1024:
+                    print("Received all file, end")
+                    break  # Assuming the end of data transmission if data received is less than 1024 bytes
             else:
                 # No data means the client might have closed the connection or finished sending
+                print("No data received, client may have disconnected.")
                 break
     except Exception as e:
-        print(f"Error handling data from {client_addr}: {e}")
-
+        print(f"Error handling data: {e}")
 
 
 def server_main():
     host = 'localhost'
-    port = 12345
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind((host, port))
+    port = 4433
     print(f"Server is running on {host}:{port}")
-    print("Waiting for clients...")
+
+    # Create a QUIC server
+    quic_server = QuicConnection(host, port)
+
     try:
         while True:
-            # The server waits to receive some initial data or a connection initiation message
-            data, client_addr = server_socket.recvfrom(1024)
-            print(f"Received initial contact from {client_addr}")
-
-            # Start a new thread to handle ongoing communication with this client
-            client_thread = threading.Thread(target=handle_client_data, args=(server_socket, client_addr))
+            # Start a new thread to handle ongoing communication with clients
+            client_thread = threading.Thread(target=handle_client_data, args=(quic_server,))
             client_thread.start()
     except Exception as e:
         print("Server error:", e)
     finally:
-        server_socket.close()
-
-
+        # Close the QUIC server
+        quic_server.close()
 
 
 if __name__ == "__main__":
