@@ -19,8 +19,12 @@ def send(client, server_address, file_path):
             # Read the file in chunks
             chunk_size = 1024  # You can adjust the chunk size to a suitable value for your network environment
             chunk = file.read(chunk_size)
+            count=0
             while chunk:
-                client.sendto(chunk, server_address)
+                q=Quic(count,chunk)
+                count+=1
+                q.send(chunk)
+                #client.sendto(chunk, server_address)
                 print("Sent a chunk of data")
                 time.sleep(0.01)  # Short delay to prevent overwhelming the receiver
                 chunk = file.read(chunk_size)

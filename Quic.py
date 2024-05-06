@@ -12,6 +12,7 @@ class Quic:
         self.udp_socket = None
         self.ip = None
         self.port = None
+        self.payload = payload
 
         Quic.static_id += 1
 
