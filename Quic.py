@@ -1,5 +1,6 @@
 import socket
 import time
+import Quic_Connection
 
 class Quic:
     static_id = 0
@@ -8,13 +9,32 @@ class Quic:
         self.sequence_number = sequence_number
         self.sent_time = time.time()
         self.acknowledged = False
-        self.is_server = is_server
-        self.udp_socket = None
-        self.ip = None
-        self.port = None
-        self.payload = payload
+        self.ip = "local host"
+        self.port = 12345
+        #self.dick = {}
+        #self.static_id = 0
 
-        Quic.static_id += 1
+    def decode(data: bytes):
+        if not data:
+            return {}
+        # Define an empty dictionary to store decoded data
+        decoded_data = {}
+        # Check data type
+        if isinstance(data, bytes):
+            # Try to decode data as UTF-8 string
+            try:
+                decoded_data["data"] = data.decode("utf-8")
+            except UnicodeDecodeError:
+                # If decoding fails, data is treated as binary
+                decoded_data["data"] = data.hex()
+        else:
+            # If data is not bytes, raise an error
+            raise TypeError("data must be a bytes object")
+        return decoded_data
+
+    # I have no idea what I have done in hte incode!!!!!!!!!!!
+    def encode(self, data: bytes):
+        return data.encode()
 
     def create_socket(self, ip: str, port: int):
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -27,17 +47,9 @@ class Quic:
         return data
 
     def do_handshake(self):
-        if self.is_server:
-            data, addr = self.udp_socket.recvfrom(1024)
-            if data.decode() == "SYN":
-                self.udp_socket.sendto(b"SYN-ACK", addr)
-        else:
-            self.udp_socket.sendto(b"SYN", (self.ip, self.port))
-            data, addr = self.udp_socket.recvfrom(1024)
-            if data.decode() == "SYN-ACK":
-                self.udp_socket.sendto(b"ACK", addr)
-            else:
-                print("Handshake failed")
+        data, addr = self.udp_socket.recvfrom(1024)
+        if data.decode() == "SYN":
+            self.udp_socket.sendto(b"SYN-ACK", addr)
 
     def create_ack_packet(self, ack: int):
         return bytes(str(ack), 'utf-8')
@@ -55,12 +67,21 @@ class Quic:
         data, addr = self.udp_socket.recvfrom(1024)
         return data, addr
 
-    def send(self, data: bytes):
-        self.udp_socket.sendto(data, (self.ip, self.port))
+    # def send(self, data: bytes):
+    #     self.dick[self.static_id] = data #
+    #     self.static_id+=1
+    #     data = self.encode(data)
+    #     self.udp_socket.sendto(data, (self.ip, self.port))
+    #
+    # def recv(self,seq):
+    #     data, _ = self.udp_socket.recvfrom(1024)
+    #     packet = data.decode()
+    #     if self._is_packet_valid(seq):
+    #         packet.
+    #     return data
 
-    def recv(self):
-        data, addr = self.udp_socket.recvfrom(1024)
-        return data
+    def _is_packet_valid(self, seq):
+        return self.static_id == seq
 
     def close(self):
         self.udp_socket.close()

@@ -6,8 +6,6 @@ class Quic_Handler:
             self.__data_base[index] = value
 
     #implemeinting the recovery method and date base
-    def recovery(self):
-        while len(self.__data_base)!=0:
 
 
 

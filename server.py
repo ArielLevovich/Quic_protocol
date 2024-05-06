@@ -23,6 +23,7 @@ def handle_client_data(server_socket, client_addr):
         print(f"Error handling data from {client_addr}: {e}")
 
 
+
 def server_main():
     host = 'localhost'
     port = 12345
@@ -43,6 +44,7 @@ def server_main():
         print("Server error:", e)
     finally:
         server_socket.close()
+
 
 
 
